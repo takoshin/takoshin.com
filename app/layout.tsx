@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
@@ -18,13 +17,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body>
-        <Script
+      <head>
+        <script
           async
           crossOrigin="anonymous"
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5613061385743386"
-          strategy="afterInteractive"
         />
+      </head>
+      <body>
         <AppShell>{children}</AppShell>
       </body>
     </html>
