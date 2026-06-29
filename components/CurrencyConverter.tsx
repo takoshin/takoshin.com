@@ -40,9 +40,13 @@ function formatRateDate(value: string) {
   }).format(date);
 }
 
+function restoreZeroInput(value: string) {
+  return value.trim() === "" ? "0" : value;
+}
+
 export function CurrencyConverter() {
   const [base, setBase] = useState<CurrencyCode>("JPY");
-  const [amount, setAmount] = useState("10000");
+  const [amount, setAmount] = useState("0");
   const [rateState, setRateState] = useState<RateState>(() => ({
     rates: ratesFromJpyReference("JPY"),
     source: "fallback",
@@ -133,9 +137,16 @@ export function CurrencyConverter() {
               <input
                 aria-label="換算する金額"
                 inputMode="decimal"
+                placeholder="0"
                 type="text"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
+                onFocus={() => {
+                  if (parsePositiveNumber(amount) === 0) {
+                    setAmount("");
+                  }
+                }}
+                onBlur={(event) => setAmount(restoreZeroInput(event.target.value))}
               />
             </label>
 

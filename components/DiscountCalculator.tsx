@@ -24,12 +24,20 @@ function clampRate(value: number) {
   return Math.min(100, Math.max(0, value));
 }
 
+function isZeroInput(value: string) {
+  return parsePositiveNumber(value) === 0;
+}
+
+function restoreZeroInput(value: string) {
+  return value.trim() === "" ? "0" : value;
+}
+
 export function DiscountCalculator() {
-  const [amount, setAmount] = useState("10000");
+  const [amount, setAmount] = useState("0");
   const [taxMode, setTaxMode] = useState<TaxMode>("included");
-  const [discountBase, setDiscountBase] = useState<DiscountBase>("included");
+  const [discountBase, setDiscountBase] = useState<DiscountBase>("excluded");
   const [presetRate, setPresetRate] = useState<PresetRate>("20");
-  const [customRate, setCustomRate] = useState("30");
+  const [customRate, setCustomRate] = useState("0");
   const [status, setStatus] = useState("");
 
   const amountValue = parsePositiveNumber(amount);
@@ -106,11 +114,11 @@ export function DiscountCalculator() {
   }
 
   function reset() {
-    setAmount("10000");
+    setAmount("0");
     setTaxMode("included");
-    setDiscountBase("included");
+    setDiscountBase("excluded");
     setPresetRate("20");
-    setCustomRate("30");
+    setCustomRate("0");
     setStatus("初期値に戻しました");
   }
 
@@ -129,12 +137,19 @@ export function DiscountCalculator() {
               <input
                 aria-label="金額"
                 inputMode="decimal"
+                placeholder="0"
                 type="text"
                 value={amount}
                 onChange={(event) => {
                   setAmount(event.target.value);
                   setStatus("");
                 }}
+                onFocus={() => {
+                  if (isZeroInput(amount)) {
+                    setAmount("");
+                  }
+                }}
+                onBlur={(event) => setAmount(restoreZeroInput(event.target.value))}
               />
             </label>
 
@@ -190,12 +205,19 @@ export function DiscountCalculator() {
               <input
                 aria-label="その他の割引率"
                 inputMode="decimal"
+                placeholder="0"
                 type="text"
                 value={customRate}
                 onChange={(event) => {
                   setCustomRate(event.target.value);
                   setStatus("");
                 }}
+                onFocus={() => {
+                  if (isZeroInput(customRate)) {
+                    setCustomRate("");
+                  }
+                }}
+                onBlur={(event) => setCustomRate(restoreZeroInput(event.target.value))}
               />
               <strong>%</strong>
             </label>
