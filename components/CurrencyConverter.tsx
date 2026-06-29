@@ -16,7 +16,29 @@ type RateState = {
   rates: Record<CurrencyCode, number>;
   source: "live" | "fallback";
   date: string;
+  provider: string;
+  providerUrl: string;
 };
+
+type RatesApiResponse = {
+  rates?: Partial<Record<CurrencyCode, number>>;
+  provider?: string;
+  providerUrl?: string;
+  updatedAt?: string | null;
+};
+
+function formatRateDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(date);
+}
 
 export function CurrencyConverter() {
   const [base, setBase] = useState<CurrencyCode>("JPY");
@@ -24,7 +46,9 @@ export function CurrencyConverter() {
   const [rateState, setRateState] = useState<RateState>(() => ({
     rates: ratesFromJpyReference("JPY"),
     source: "fallback",
-    date: "参考値"
+    date: "参考値",
+    provider: "参考レート",
+    providerUrl: ""
   }));
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,7 +61,7 @@ export function CurrencyConverter() {
       setIsLoading(true);
 
       try {
-        const response = await fetch(`https://api.frankfurter.app/latest?from=${base}`, {
+        const response = await fetch(`/api/rates?base=${base}`, {
           signal: controller.signal
         });
 
@@ -45,10 +69,7 @@ export function CurrencyConverter() {
           throw new Error("Failed to fetch rates");
         }
 
-        const data = (await response.json()) as {
-          date?: string;
-          rates?: Partial<Record<CurrencyCode, number>>;
-        };
+        const data = (await response.json()) as RatesApiResponse;
         const nextRates = ratesFromJpyReference(base);
 
         currencyCodes.forEach((code) => {
@@ -58,14 +79,18 @@ export function CurrencyConverter() {
         setRateState({
           rates: nextRates,
           source: "live",
-          date: data.date ?? "最新"
+          date: data.updatedAt ?? "最新",
+          provider: data.provider ?? "ExchangeRate-API",
+          providerUrl: data.providerUrl ?? "https://www.exchangerate-api.com"
         });
       } catch (error) {
         if (!controller.signal.aborted) {
           setRateState({
             rates: ratesFromJpyReference(base),
             source: "fallback",
-            date: "参考値"
+            date: "参考値",
+            provider: "参考レート",
+            providerUrl: ""
           });
         }
       } finally {
@@ -86,7 +111,8 @@ export function CurrencyConverter() {
       .map((code) => ({
         code,
         converted: parsedAmount * rateState.rates[code],
-        rate: rateState.rates[code]
+        rate: rateState.rates[code],
+        inverseRate: rateState.rates[code] > 0 ? 1 / rateState.rates[code] : 0
       }));
   }, [base, parsedAmount, rateState.rates]);
 
@@ -134,6 +160,11 @@ export function CurrencyConverter() {
             <strong>
               {primaryUsd ? formatCurrencyAmount(primaryUsd.converted, "USD") : "-"}
             </strong>
+            {primaryUsd && (
+              <small>
+                1 USD = {formatCurrencyAmount(primaryUsd.inverseRate, base)}
+              </small>
+            )}
           </div>
 
           <div className="currency-list" aria-label="換算結果">
@@ -143,7 +174,8 @@ export function CurrencyConverter() {
                 <span className="currency-name">{currencies[row.code].name}</span>
                 <strong>{formatCurrencyAmount(row.converted, row.code)}</strong>
                 <small>
-                  1 {base} = {formatNumber(row.rate, 6)} {row.code}
+                  1 {base} = {formatNumber(row.rate, 6)} {row.code} / 1 {row.code} ={" "}
+                  {formatCurrencyAmount(row.inverseRate, base)}
                 </small>
               </div>
             ))}
@@ -153,7 +185,19 @@ export function CurrencyConverter() {
             {isLoading
               ? "レートを取得しています"
               : rateState.source === "live"
-                ? `${rateState.date} の公開レートを使用中`
+                ? (
+                    <>
+                      {formatRateDate(rateState.date)} 更新の市場レートを使用中
+                      {rateState.providerUrl && (
+                        <>
+                          {" / "}
+                          <a href={rateState.providerUrl} target="_blank" rel="noopener noreferrer">
+                            Rates By {rateState.provider}
+                          </a>
+                        </>
+                      )}
+                    </>
+                  )
                 : "接続できない場合の参考レートを表示中"}
           </p>
         </section>
