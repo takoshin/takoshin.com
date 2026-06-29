@@ -22,8 +22,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             T
           </span>
           <span>
-            <strong>Takoshin Tools</strong>
-            <small>暮らしと制作の変換ツール</small>
+            <strong>TS Tools</strong>
+            <small>便利ツール</small>
           </span>
         </Link>
 
